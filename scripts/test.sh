@@ -1,3 +1,0 @@
-#!/bin/bash
-echo "buck2 test //..."
-buck2 test //...

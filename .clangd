@@ -8,7 +8,5 @@ If:
 CompileFlags:
   Add:
     - -I./
-    - -I./deps/glad/include
-    - -I./deps/glfw/include
     - -I./deps/googletest/googletest/include
     - -I./deps/googletest/googlemock/include

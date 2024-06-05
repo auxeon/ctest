@@ -1,73 +1,95 @@
-![QUICK BUCK2 BUILD AND TEST](https://github.com/auxeon/quick/actions/workflows/main.yml/badge.svg)
+# CTEST
 
-# Quick
+A simple Header only test framework in c99 with the following features
 
-BUCK2 build system starter project
+- [x] Timeouts
+- [x] Asserts
+- [x] Logging
+- [x] Colors 
+- [x] Skippable Tests
 
-[INSTRUCTIIONS TO INSTALL BUCK2](
-https://buck2.build/docs/getting_started/#installing-buck2)
+## TO GET STARTED
+Since it is header only you can just drag and drop ```ctest.h``` into your project and use it with your preferred build system
 
-## To clone the repo with submodules at the recorded commit hashes in the repo
+If you're planning on using BUCK2 use the instructions below
+
+## TO GET STARTED BUCK2
+git clone --recurse-submodules --remote-submodules git@github.com:auxeon/ctest.git
+
+## TO RUN USING BUCK
+buck2 run //:example_ctest
+
+## TO COMPILE
+Just include the header file ```ctest.h``` in your project and make sure the ```ctest.h``` file's location is in your include paths. all the tests will have static scope meaning tests that you write in other files and include, will not be
+run by default - you will need to setup a non static function inside that invokes the static ctest_run_all_tests()
+check
+
+
+## USAGE EXAMPLES
+Look at ```example_ctest.cpp``` for example usage patterns
+
+### 1. TO WRITE A TEST
+```cpp
+TEST(classname, testname) {
+  ... // test body
+}
 ```
-git clone --recurse-submodules git@github.com:auxeon/quick.git
+### 2. TO WRITE ASSERTS
+```cpp
+ASSERT_EQ(x, y) // to fail if x != y
+ASSERT_GT(x, y) // to fail if x <= y
+ASSERT_LT(x, y) // to fail if x >= y
+ASSERT_NE(x, y) // to fail if x == y
+ASSERT_APPROX_EQ(x, y) // to fail if x and y differ by more than EPSILON
+ASSERT_APPROX_EQE(x, y, 0.0001) // to fail if x and y differ by more than EPSILON
+```
+### 3. TO DEFINE MAX TESTS
+Pass the below argument to your compiler, default MAXTESTS is 20
+```bash
+-DMAXTESTS=30 // if you want to set the max tests to 30
+```
+OR
+```cpp
+#define MAXTESTS 30  // define this before including tests.h
+#include <ctest.h>
+```
+### 4. TO DEFINE TEST TIMEOUT 
+Time is in unsigned int seconds (default: -1 no timeout)
+```bash
+-DTIMEOUT 2 // if you want test to timeout after 2 sec
+```
+OR
+```cpp
+#define TIMEOUT 2  // define this before including tests.h
+#include <ctest.h>
+```
+### 5. TO SUPPRESS COLOR OUTPUT
+Pass the below argument to your compiler, default is COLORS=1
+```bash
+-DCOLORS=0
+```
+OR
+```cpp
+#define COLORS 0 // define this before including tests.h
+#include <tests.h>
+```
+### 6. TO SKIP TEST
+Change the TEST macro to SKIPTEST like so
+```cpp
+TEST(classname, testname) {
+}
+```
+TO
+```cpp
+SKIPTEST(classname, testanme) {
+}
 ```
 
-## To clone the repo and update submodules
-```
-git clone --recurse-submodules --remote-submodules git@github.com:auxeon/quick.git
-```
-
-## BUCK2 steps
-To create a new BUCK2 project use
-```
-buck2 init --git
-```
-
-Once done just copy the BUCK files, scripts from this repo into your local folder that you just created above
-
-## C++ steps
-To run c++ code
-```
-buck2 run //:app
-```
-
-To test c++ code
-```
-buck2 test //:test
-```
-
-## Python steps
-Update requirements.txt if you'd like to install a package in venv
-Before running python code setup venv using
-```
-buck2 clean
-buck2 build //:py_install_venv
-```
-
-To uninstall venv use
-```
-buck2 build //:py_uninstall_venv
-```
-To run python code
-```
-buck2 run //:py_app
-```
-
-To test python code
-```
-buck2 test //:py_test
-```
-
-## Tests
-To run all tests in the project
-```
-buck2 clean
-buck2 build //:py_install_venv
-buck2 test //...
-```
-
-## Scripts
-You can find helper scripts that wrap above commands here
-```
-scripts/
+### 7. TO LOG
+Use printfstyle args with below macros for different levels
+```Cpp
+LOG(...)
+LOGINFO(...)
+LOGWARN(...)
+LOGERROR(...)
 ```
