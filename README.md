@@ -13,11 +13,11 @@ Since it is header only you can just drag and drop ```ctest.h``` into your proje
 
 If you're planning on using BUCK2 use the instructions below
 
-## TO GET STARTED BUCK2
-git clone --recurse-submodules --remote-submodules git@github.com:auxeon/ctest.git
+## TO GET STARTED WITH BUCK2
+```git clone --recurse-submodules --remote-submodules git@github.com:auxeon/ctest.git```
 
 ## TO RUN USING BUCK
-buck2 run //:example_ctest
+```buck2 run //:example_ctest```
 
 ## TO COMPILE
 Just include the header file ```ctest.h``` in your project and make sure the ```ctest.h``` file's location is in your include paths. all the tests will have static scope meaning tests that you write in other files and include, will not be
