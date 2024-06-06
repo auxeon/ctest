@@ -1,0 +1,22 @@
+-------- ./example_ctest.cpp --------
+[TEST example_assert_eq]
+example_assert_eq : hello there
+[TEST example_pythagoras]
+[ERROR][1717615814] ./example_ctest.cpp:example_pythagoras:12 example_pythagoras
+10.000000, 10.000000
+[INFO][1717615814] ./example_ctest.cpp:example_pythagoras:15 example_pythagoras : 10.000000, 10.000000
+
+[TEST example_timeout]
+[TEST example_assert_lt]
+[TEST example_nothing]
+[TEST example_skip]
+[RESULTS]
+STATUS, ID, NAME, TIME
+[PASS], (1/6), example_assert_eq, 0.000000
+[PASS], (2/6), example_pythagoras, 0.000008
+[TIME], (3/6), example_timeout, 4.004974
+[PASS], (4/6), example_assert_lt, 0.000000
+[PASS], (5/6), example_nothing, 0.000000
+[SKIP], (6/6), example_skip, 0.000000
+Ran 6 tests, 0 Failed, 4 Passed, 1 Timed out, 1 Skipped.
+-------- ./example_ctest.cpp --------

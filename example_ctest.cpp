@@ -17,7 +17,7 @@ TEST(example, pythagoras) {
 }
 
 TEST(example, timeout) {
-  sleep(2);
+  sleep(4);
 }
 
 TEST(example, assert_lt) {

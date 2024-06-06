@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-  
+
+#define EXIT_ON_TIMEOUT 0
+
 #ifdef _WIN32
 #include <io.h>
 #define isatty _isatty
@@ -22,7 +24,8 @@ static void __ctest_register_test(const char* testname, void (*test)(),
                                   int skip);
 static void __ctest_print_result();
 static void __handle_sig_alarm(int signal);
-static int ctest_run_all_tests();
+static int __ctest_run_all_tests();
+static uint64_t __time_now();
 
 #ifndef EXIT_DEFAULT
 #define EXIT_DEFAULT -1
@@ -76,6 +79,22 @@ static int ctest_run_all_tests();
 #define COLORS_YELLOW ""
 #endif
 
+#ifndef NS2S
+#define NS2S(t) (t)/1e9
+#endif
+
+#ifndef TIC
+#define TIC() (__time_now())
+#endif
+
+#ifndef TOC
+#define TOC(t) (__time_now() - (t))
+#endif
+
+#ifndef EXIT_ON_TIMEOUT
+#define EXIT_ON_TIMEOUT 1
+#endif
+
 #ifdef EXIT_ON_ASSERT
 #include <assert.h>
 #define __ASSERT_CMP(__x, __y, __cmp)                                     \
@@ -108,8 +127,14 @@ static int ctest_run_all_tests();
 #define __LOG(type, color, ...)                                       \
   ___t = time(NULL);                                                  \
   ___lt = (___t > 0) ? ___t : ___t * 1u;                              \
-  printf("%s[%s][%ld] %s:%s:%d%s ", (color), (type), ___lt, __FILE__, \
+  if (!isatty(STDOUT_FILENO)) { \
+    printf("[%s][%ld] %s:%s:%d ", (type), ___lt, __FILE__, \
+         __func__, __LINE__);                             \
+  } \
+  else { \
+    printf("%s[%s][%ld] %s:%s:%d%s ", (color), (type), ___lt, __FILE__, \
          __func__, __LINE__, COLORS_NIL);                             \
+  } \
   printf(__VA_ARGS__);                                                \
   printf("\n");
 #else
@@ -147,6 +172,7 @@ static void (*gTests[MAXTESTS])() = {};
 static const char* gTestNames[MAXTESTS] = {};
 static int gTestStatuses[MAXTESTS] = {};
 static int gTestSkip[MAXTESTS] = {};
+static uint64_t gTestTimes[MAXTESTS] = {};
 static int gTestNPass = 0;
 static int gTestNTime = 0;
 static int gTestNFail = 0;
@@ -159,6 +185,12 @@ typedef enum Gstatus {
   Gstatus_Success,
   Gstatus_MaxTestLimitExceeded,
 } Gstatus;
+
+static uint64_t __time_now() {
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  return now.tv_sec * 1e9 + now.tv_nsec;
+}
 
 static void __ctest_assert(const char* funcname, const char* filename, int lineno,
                            const char* reason) {
@@ -196,6 +228,7 @@ static void __ctest_print_result() {
 #endif
   }
 
+  printf("STATUS, ID, NAME, TIME\n");
   for(int i = 0; i < gTestId; ++i) {
     const char* color = "";
     const char* status = "";
@@ -219,8 +252,8 @@ static void __ctest_print_result() {
       default:
         break;
     }
-    printf("%s[%-4s]%s (%d/%d) %s\n", color, status, CNIL, i + 1, gTestId,
-           gTestNames[i]);
+    printf("%s[%-4s]%s, (%d/%d), %s, %lf\n", color, status, CNIL, i + 1, gTestId,
+           gTestNames[i], NS2S(gTestTimes[i]));
   }
   printf(
       "Ran %s%d tests%s, %s%d Failed%s, %s%d Passed%s, %s%d Timed out%s, %s%d "
@@ -236,21 +269,28 @@ static void __handle_sig_alarm(int signal) {
   gTestStatuses[gLastTestId] = EXIT_TIMEOUT;
 }
 
-static int ctest_run_all_tests() {
-#if TIMEOUT > 0
+static int __ctest_run_all_tests() {
+#if TIMEOUT > 0 && EXIT_ON_TIMEOUT == 1
   signal(SIGALRM, __handle_sig_alarm);
+  printf("xkcd1\n");
 #endif
   for(int i = 0; i < gTestId; ++i) {
     printf("[TEST %s]\n", gTestNames[i]);
     gLastTestId = i;
-#if TIMEOUT > 0
+#if TIMEOUT > 0 && EXIT_ON_TIMEOUT == 1
     alarm(TIMEOUT);
+    printf("xkcd1\n");
 #endif
     int status = EXIT_SUCCESS;
     if(!gTestSkip[i]) {
+      uint64_t __ts = __time_now();
       gTests[i]();
+      gTestTimes[i] = __time_now() - __ts;
     } else {
       status = EXIT_SKIP;
+      }
+    if (NS2S(gTestTimes[i]) > TIMEOUT) {
+      status = EXIT_TIMEOUT;
     }
     if(!gTestStatuses[i]) {
       gTestStatuses[i] = status;
@@ -266,5 +306,5 @@ static int ctest_run_all_tests() {
 
 #define CTESTRUN() \
   printf("-------- %s --------\n", __FILE__); \
-  ctest_run_all_tests(); \
+  __ctest_run_all_tests(); \
   printf("-------- %s --------\n", __FILE__);
