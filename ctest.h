@@ -100,7 +100,7 @@ static uint64_t __time_now();
 #define __ASSERT_CMP(__x, __y, __cmp)                                     \
   {                                                                       \
     if(!((__x)__cmp(__y))) {                                              \
-      gTestStatuses[gLastTestId] = EXIT_FAILURE;                              \
+      gTestStatuses[gLastTestId] = EXIT_FAILURE;                          \
       __assert_rtn(__func__, __FILE__, __LINE__, TOSTR((__x)__cmp(__y))); \
       return;                                                             \
     }                                                                     \
@@ -109,7 +109,7 @@ static uint64_t __time_now();
 #define __ASSERT_CMP(__x, __y, __cmp)                                     \
   {                                                                       \
     if(!(__x __cmp __y)) {                                                \
-      gTestStatuses[gLastTestId] = EXIT_FAILURE;                              \
+      gTestStatuses[gLastTestId] = EXIT_FAILURE;                          \
       __ctest_assert(__func__, __FILE__, __LINE__, TOSTR(__x __cmp __y)); \
       return;                                                             \
     }                                                                     \
@@ -124,18 +124,18 @@ static uint64_t __time_now();
 #define ASSERT_APPROX_EQE(x, y, epsilon) __ASSERT_CMP(fabs((x) - (y)), epsilon, <)
 
 #if COLORS == 1
-#define __LOG(type, color, ...)                                       \
-  ___t = time(NULL);                                                  \
-  ___lt = (___t > 0) ? ___t : ___t * 1u;                              \
-  if (!isatty(STDOUT_FILENO)) { \
-    printf("[%s][%ld] %s:%s:%d ", (type), ___lt, __FILE__, \
-         __func__, __LINE__);                             \
-  } \
-  else { \
-    printf("%s[%s][%ld] %s:%s:%d%s ", (color), (type), ___lt, __FILE__, \
-         __func__, __LINE__, COLORS_NIL);                             \
-  } \
-  printf(__VA_ARGS__);                                                \
+#define __LOG(type, color, ...)                                               \
+  ___t = time(NULL);                                                          \
+  ___lt = (___t > 0) ? ___t : ___t * 1u;                                      \
+  if (!isatty(STDOUT_FILENO)) {                                               \
+    printf("[%s][%ld] %s:%s:%d ", (type), ___lt, __FILE__,                    \
+         __func__, __LINE__);                                                 \
+  }                                                                           \
+  else {                                                                      \
+    printf("%s[%s][%ld] %s:%s:%d%s ", (color), (type), ___lt, __FILE__,       \
+         __func__, __LINE__, COLORS_NIL);                                     \
+  }                                                                           \
+  printf(__VA_ARGS__);                                                        \
   printf("\n");
 #else
 #define __LOG(type, color, ...)                                               \
@@ -283,9 +283,9 @@ static int __ctest_run_all_tests() {
 #endif
     int status = EXIT_SUCCESS;
     if(!gTestSkip[i]) {
-      uint64_t __ts = __time_now();
+      gTestTimes[i] = TIC();
       gTests[i]();
-      gTestTimes[i] = __time_now() - __ts;
+      gTestTimes[i] = TOC(gTestTimes[i]);
     } else {
       status = EXIT_SKIP;
       }
@@ -304,7 +304,7 @@ static int __ctest_run_all_tests() {
   return !(gTestNPass == gTestId);
 }
 
-#define CTESTRUN() \
-  printf("-------- %s --------\n", __FILE__); \
-  __ctest_run_all_tests(); \
+#define CTESTRUN()                                                    \
+  printf("-------- %s --------\n", __FILE__);                         \
+  __ctest_run_all_tests();                                            \
   printf("-------- %s --------\n", __FILE__);
