@@ -8,24 +8,40 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdint.h>
 
 #define EXIT_ON_TIMEOUT 0
 
 #ifdef _WIN32
 #include <io.h>
 #define isatty _isatty
+#define STDOUT_FILENO _fileno(stdout)
 #elif defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #endif
 
+#ifdef _MSC_VER
+  #pragma section(".CRT$XCU", read)
+  typedef void (__cdecl *init_func)(void);
+  #define CONSTRUCTOR_IMPL(func, line) \
+    static void func(void); \
+    __declspec(allocate(".CRT$XCU")) init_func _##func##_##line = func; \
+    static void func(void)
+  #define CONSTRUCTOR(func) CONSTRUCTOR_IMPL(func, __LINE__)
+#else
+  #define CONSTRUCTOR_IMPL \
+    __attribute__((constructor)) static void func(void);
+  #define CONSTRUCTOR(func) CONSTRUCTOR_IMPL(func)
+#endif
+
 static void __ctest_assert(const char* funcname, const char* fname, int lineno,
                            const char* reason);
-static void __ctest_register_test(const char* testname, void (*test)(),
+static void __ctest_register_test(const char* testname, void (*test)(void),
                                   int skip);
-static void __ctest_print_result();
+static void __ctest_print_result(void);
 static void __handle_sig_alarm(int signal);
-static int __ctest_run_all_tests();
-static uint64_t __time_now();
+static int __ctest_run_all_tests(void);
+static uint64_t __time_now(void);
 
 #ifndef EXIT_DEFAULT
 #define EXIT_DEFAULT -1
@@ -152,23 +168,23 @@ static uint64_t __time_now();
 #define LOGERROR(...) __LOG("ERROR", COLORS_RED, __VA_ARGS__)
 
 #define TEST(classname, testname)                                           \
-  static void classname##_##testname();                                     \
-  void __attribute__((constructor)) __register_##classname##_##testname() { \
+  static void classname##_##testname(void);                                 \
+  CONSTRUCTOR(__register_##classname##_##testname) {                        \
     __ctest_register_test(TOSTR(classname##_##testname),                    \
                           classname##_##testname, 0);                       \
   }                                                                         \
-  static void classname##_##testname()
+  static void classname##_##testname(void)
 
 #define SKIPTEST(classname, testname)                                       \
-  static void classname##_##testname();                                     \
-  void __attribute__((constructor)) __register_##classname##_##testname() { \
+  static void classname##_##testname(void);                                 \
+  CONSTRUCTOR(__register_##classname##_##testname) {                        \
     __ctest_register_test(TOSTR(classname##_##testname),                    \
                           classname##_##testname, 1);                       \
   }                                                                         \
-  static void classname##_##testname()
+  static void classname##_##testname(void)
 
 static int gTestId = 0;
-static void (*gTests[MAXTESTS])() = {};
+static void (*gTests[MAXTESTS])(void) = {};
 static const char* gTestNames[MAXTESTS] = {};
 static int gTestStatuses[MAXTESTS] = {};
 static int gTestSkip[MAXTESTS] = {};
@@ -186,10 +202,14 @@ typedef enum Gstatus {
   Gstatus_MaxTestLimitExceeded,
 } Gstatus;
 
-static uint64_t __time_now() {
+static uint64_t __time_now(void) {
   struct timespec now;
+  #if defined(_WIN32)
+  timespec_get(&now, TIME_UTC);
+  #else
   clock_gettime(CLOCK_MONOTONIC, &now);
-  return now.tv_sec * 1e9 + now.tv_nsec;
+  #endif
+  return now.tv_sec * 1000000000ull + now.tv_nsec;
 }
 
 static void __ctest_assert(const char* funcname, const char* filename, int lineno,
@@ -198,7 +218,7 @@ static void __ctest_assert(const char* funcname, const char* filename, int linen
           reason, funcname, filename, lineno);
 }
 
-static void __ctest_register_test(const char* testname, void (*test)(),
+static void __ctest_register_test(const char* testname, void (*test)(void),
                                   int skip) {
   if(gTestId >= MAXTESTS) {
     fprintf(stderr, "%s: please increase MAXTESTS limit or delete tests\n",
@@ -211,7 +231,7 @@ static void __ctest_register_test(const char* testname, void (*test)(),
   ++gTestId;
 }
 
-static void __ctest_print_result() {
+static void __ctest_print_result(void) {
   printf("[RESULTS]\n");
   const char* CRED = "";
   const char* CGREEN = "";
@@ -269,17 +289,15 @@ static void __handle_sig_alarm(int signal) {
   gTestStatuses[gLastTestId] = EXIT_TIMEOUT;
 }
 
-static int __ctest_run_all_tests() {
+static int __ctest_run_all_tests(void) {
 #if TIMEOUT > 0 && EXIT_ON_TIMEOUT == 1
   signal(SIGALRM, __handle_sig_alarm);
-  printf("xkcd1\n");
 #endif
   for(int i = 0; i < gTestId; ++i) {
     printf("[TEST %s]\n", gTestNames[i]);
     gLastTestId = i;
 #if TIMEOUT > 0 && EXIT_ON_TIMEOUT == 1
     alarm(TIMEOUT);
-    printf("xkcd1\n");
 #endif
     int status = EXIT_SUCCESS;
     if(!gTestSkip[i]) {
@@ -289,7 +307,7 @@ static int __ctest_run_all_tests() {
     } else {
       status = EXIT_SKIP;
       }
-    if (NS2S(gTestTimes[i]) > TIMEOUT) {
+    if (NS2S(gTestTimes[i]) > TIMEOUT && TIMEOUT > 0) {
       status = EXIT_TIMEOUT;
     }
     if(!gTestStatuses[i]) {

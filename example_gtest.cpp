@@ -1,4 +1,8 @@
 #include <gtest/gtest.h>
+#ifdef _WIN32
+#include <windows.h>
+#define sleep Sleep
+#endif
 static time_t ___t;
 static time_t ___lt;
 #define COLORS 1
@@ -42,7 +46,7 @@ TEST(example, assert_eq) {
 }
 
 TEST(example, pythagoras) {
-  LOGERROR("%s", __func__);
+  LOG("%s", __func__);
   double a = 8, o = 6, h = 10;
   printf("%lf, %lf\n", h, hypot(o, a));
   LOGINFO("%s : %lf, %lf\n", __func__,  h, hypot(o, a));
