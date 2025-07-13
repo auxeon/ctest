@@ -1,4 +1,4 @@
-name: CTEST BUILD CI
+name: CTEST BUCK2 BUILD AND TEST
 on: [push, pull_request, workflow_dispatch]
 
 env:
