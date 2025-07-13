@@ -1,3 +1,5 @@
+![CTEST BUCK BUILD AND TEST](https://github.com/auxeon/ctest/actions/workflows/main.yml/badge.svg)
+
 # CTEST
 
 A simple Header only test framework in c99 with the following features
