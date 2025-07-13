@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <math.h>
 #ifdef _WIN32
 #include <windows.h>
 #define sleep Sleep

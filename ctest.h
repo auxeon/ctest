@@ -29,8 +29,8 @@
     static void func(void)
   #define CONSTRUCTOR(func) CONSTRUCTOR_IMPL(func, __LINE__)
 #else
-  #define CONSTRUCTOR_IMPL \
-    __attribute__((constructor)) static void func(void);
+  #define CONSTRUCTOR_IMPL(func) \
+    __attribute__((constructor)) static void func(void)
   #define CONSTRUCTOR(func) CONSTRUCTOR_IMPL(func)
 #endif
 
